@@ -22,13 +22,40 @@ class FirewallServices(Services):
     Args:
         Services (_type_): _description_
     """
+    FIREWALL_SERVICES = ['predefined', 'shared', 'vsys', 'panorama-pushed']
     # TODO: build out Firewall service calls
 
     def __init__(self, location: str, api_key: str, device: str, version: str, name: str = None,
-                 certstore=None, output_format: str = "json", device_group: str = None, vsys: str = 'vsys1'):
+                 certstore=None, output_format: str = "json", vsys: str = 'vsys1'):
         self.vsys = vsys
-    super().__init__(location=location, api_key=api_key, device=device,
-                     version=version, name=name, certstore=certstore)
+        super().__init__(location=location, api_key=api_key, device=device,
+                     version=version, name=name, certstore=certstore, output_format=output_format)
+        self.services = {}
+
+    def refresh_services(self):
+        """_summary_
+
+        Raises:
+            PaloAltoMissingParam: _description_
+        """
+        # TODO: build out
+        if self.location not in self.FIREWALL_SERVICES:
+            raise PaloAltoMissingParam(f'invalid location: {self.location}')
+
+    def services_in_vsys(self):
+        """_summary_
+        """
+        # TODO: Build out
+        pass
+
+    def services_in_firewall(self):
+        """Used to generate a services list used for predefined or shared location types
+        """
+        resp = get_restapi(device=self.device, api_key=self.api_key,
+                           device_group=self.location, name=self.name, verify=self.
+                           certstore, url_type='services', version=self.version)
+        self.services[self.location] = resp.json()["result"]
+
 
 
 class PanoramaServices(Services):
