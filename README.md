@@ -80,3 +80,17 @@ searches for the address groups and lists out all the values associated with eac
 """
  
 ```
+
+
+### Services
+
+Gathers Services currently implemented for Panorama only need to update release to include firewall direct accesss. 
+
+```python
+from paloaltoapi.panorama import Panorama
+
+pano =  Panorama(device='panorama.com', certstore=False, key="key")
+pano.get_services(location='shared')
+print(pano.Services.services)
+
+```

@@ -22,7 +22,7 @@ def reformat_xml(raw_text: Response):
     soup = BS(raw_text.text, features='html.parser')
     return xml2dict(str(soup))
 
-def define_params(location='shared', name=None):
+def define_params(location: str ='shared', name: str = None, vsys: str = "vsys1") -> Dict:
     """
     Fills sttnadard Palo Alto Parameters that are used to fill RestAPI Params
     Params
@@ -32,41 +32,53 @@ def define_params(location='shared', name=None):
     name: str\n
         \tUsed to specify a named object to access.
     """
+    params = {}
     if not name and location == 'shared':
-        # params = (
-        return (
-            ('location', location),
-            ('input-format', 'json'),
-            ('output-format', 'json')
-        )
+        params = {
+            'location': location
+        }
     elif name and location == 'shared':
-        # params = (
-        return (
-            ('location', 'shared'),
-            ('name', name),
-            ('input-format', 'json'),
-            ('output-format', 'json')
-        )
+        params = {
+            'location': 'shared',
+            'name': name
+        }
+    # Handles Panorama predefined Ojbects
+    elif not name and location == 'predefined':
+        params = {
+            'location': location
+        }
+    elif name and location == 'predefined':
+        params = {
+            'location': location,
+            'name': name
+        }
+    # Handles PAN-OS Firewall vsys
+    elif not name and location == 'vsys':
+        params = {
+            'location': location,
+            'vsys': vsys
+        }
+    elif name and location == 'vsys':
+        params = {
+            'location': location,
+            'vsys': vsys,
+            'name': name
+        }
     elif name and location != 'shared':
-        # params = (
-        return (
-            ('location', 'device-group'),
-            ('name', name),
-            ('device-group', location),
-            ('input-format', 'json'),
-            ('output-format', 'json')
-        )
+        params = {
+            'location': 'device-group',
+            'name': name,
+            'device-group': location
+        }
     elif not name and location != 'shared':
-        # params = (
-        return (
-            ('location', 'device-group'),
-            ('device-group', location),
-            ('input-format', 'json'),
-            ('output-format', 'json')
-        )
+        params = {
+            'location': 'device-group',
+            'device-group': location
+        }
     else:
         raise ParamsError(
-            f"Unable to define combination name={name}, location={location}")
+            f"message=\"Unable to define combination\"|name={name}|location={location}|{vsys=}")
+    return {**params, **{"input-format": "json", "output-format": "json"}}
 
 def create_url_base(device: str, version: str) -> str:
     """
@@ -482,3 +494,34 @@ class ApiCalls:
             return req #xmltodict.parse(r.text)["response"]["result"]["system"]
         except (Exception, ConnectionError) as err:
             raise PaloAltoAPIError(str(err).replace(headers['X-PAN-KEY'], '****'))
+
+def get_restapi(device, api_key, **kwargs) -> Response:
+    """
+    Uses Rest API to get Security Pre Rule
+    """
+    device_group = kwargs.get('device_group', 'shared')
+    version = kwargs.get('version', '9.0')
+    name = kwargs.get('name', None)
+    req_type = kwargs.get('req_type', "GET")
+    vsys = kwargs.get('vsys', 'vsys1')
+    url_type = kwargs.get('url_type', 'Undefined')
+    verify = kwargs.get('verify', False)
+    if url_type not in config.REST_API.keys():
+        raise PaloAltoAPIError(f"invalid/unsupported url_type: {url_type}")
+    values = {
+        "req_type": req_type,
+        "url": config.REST_API[url_type].format(create_url_base(device, version)),
+        "params": define_params(location=device_group, name=name, vsys=vsys),
+        "headers": {
+            "X-PAN-KEY": api_key
+        },
+        "verify": verify
+    }
+    response = ApiCalls.request(
+        url=values["url"],
+        req_type=values["req_type"],
+        params=values["params"],
+        headers=values["headers"],
+        verify=values['verify'])
+    print(response, values)
+    return response
