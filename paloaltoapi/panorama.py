@@ -3,6 +3,7 @@ import sys
 from typing import Any, Dict
 from bs4 import BeautifulSoup as BS
 from paloaltoapi.commit import commit_panorama_device_group
+from paloaltoapi.device_groups.objects.applications import PanoramaApplications
 from paloaltoapi.device_groups.objects.services import PanoramaServices
 from paloaltoapi.xmlparser import xml2dict
 from paloaltoapi.firewall import Firewall
@@ -24,7 +25,8 @@ class Panorama(Firewall):
                 passwd=passwd, certstore=certstore, key=key)
         self.configs = {}
         self.high_avail_status()
-        self.Services = None
+        self.Services = PanoramaServices(device=self.device, api_key=self.api_key)
+        self.Applications = PanoramaApplications(device=self.device,api_key=self.api_key)
 
     def __repr__(self):
         attrs = str([x for x in self.__dict__])
@@ -185,24 +187,24 @@ class Panorama(Firewall):
                     device_group=device_group,verify=self.certstore)
         return resp
 
-    def get_services(self, location: str, name: str = None, device_group: str = None):
-        """_summary_
-
-        Args:
-            location (str): _description_
-            name (str, optional): _description_. Defaults to None.
-            device_group (str, optional): _description_. Defaults to None.
-        """
-        if location.lower() == 'all':
-            device_group_list = self.get_device_group_list()
-            device_group_list.remove('shared')
-            self.Services = PanoramaServices(
-                location=location, api_key=self.api_key, device=self.device, version=self.version,
-                name=name, device_group_list=device_group_list)
-        else:
-            self.Services = PanoramaServices(
-                location=location, api_key=self.api_key, device=self.device, version=self.version,
-                name=name, device_group=device_group)
+    #def get_services(self, location: str, name: str = None, device_group: str = None):
+    #    """_summary_
+    #
+    #    Args:
+    #        location (str): _description_
+    #        name (str, optional): _description_. Defaults to None.
+    #        device_group (str, optional): _description_. Defaults to None.
+    #    """
+    #    if location.lower() == 'all':
+    #        device_group_list = self.get_device_group_list()
+    #        device_group_list.remove('shared')
+    #        self.Services = PanoramaServices(
+    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
+    #            name=name, device_group_list=device_group_list)
+    #    else:
+    #        self.Services = PanoramaServices(
+    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
+    #            name=name, device_group=device_group)
 
     @property
     def url_search(self):
