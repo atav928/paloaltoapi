@@ -1,10 +1,14 @@
 """Services"""
 
-from paloaltoapi.exceptions import PaloAltoAPIError, PaloAltoMissingParam
+import threading
+
+from paloaltoapi.exceptions import PaloAltoMissingParam
 from paloaltoapi.urls import get_restapi
 
 
 class Services:
+    """Services Base Class
+    """
     def __init__(self, api_key: str, device: str, version: str,
                  certstore=None, output_format: str = "json"):
         self.api_key: str = api_key
@@ -13,6 +17,7 @@ class Services:
         self.certstore = certstore
         self.output_format: str = output_format
         self.services: dict = {}
+        self.url_type: str = 'services'
 
 
 class FirewallServices(Services):
@@ -59,7 +64,7 @@ class FirewallServices(Services):
         """
         resp = get_restapi(device=self.device, api_key=self.api_key,
                            device_group=self.location, name=self.name, verify=self.
-                           certstore, url_type='services', version=self.version)
+                           certstore, url_type=self.url_type, version=self.version)
         self.services[self.location] = resp.json()["result"]
 
 
@@ -122,7 +127,7 @@ class PanoramaServices(Services):
             else:
                 resp = get_restapi(device=self.device, api_key=self.api_key,
                                    device_group=loc, name=self.name, verify=self.
-                                   certstore, url_type='services', version=self.version)
+                                   certstore, url_type=self.url_type, version=self.version)
                 self.services[loc] = resp.json()["result"]
 
     def _services_in_device_groups(self):
@@ -136,13 +141,13 @@ class PanoramaServices(Services):
         if self.name and self.device_group:
             resp = get_restapi(
                 device=self.device, api_key=self.api_key, name=self.name,
-                verify=self.certstore, url_type='services', version=self.version,
+                verify=self.certstore, url_type=self.url_type, version=self.version,
                 device_group=self.device_group)
             self.services['device-group'][self.device_group] = resp.json()["result"]
         else:
             resp = get_restapi(
                 device=self.device, api_key=self.api_key,
-                verify=self.certstore, url_type='services', version=self.version,
+                verify=self.certstore, url_type=self.url_type, version=self.version,
                 device_group=self.device_group)
             self.services['device-group'][self.device_group] = resp.json()["result"]
 
@@ -154,15 +159,24 @@ class PanoramaServices(Services):
         """
         if not self.services.get('device-group'):
             self.services['device-group'] = {}
-        print(f"Device Group: {self.device_group_list}")
+        #print(f"Device Group: {self.device_group_list}")
+        if 'shared' in self.device_group_list:
+            self.device_group_list.remove('shared')
         if self.device_group_list:
             for dev_grp in self.device_group_list:
-                print(f'getting {dev_grp}')
-                resp = get_restapi(
-                    device=self.device, api_key=self.api_key,
-                    verify=self.certstore, url_type='services', version=self.version,
-                    device_group=dev_grp)
-                self.services['device-group'][dev_grp] = resp.json()["result"]
+                params = {}
+                params['device'] = self.device
+                params['api_key'] = self.api_key
+                params['version'] = self.version
+                params['url_type'] = self.url_type
+                params['device_group'] = dev_grp
+                params['certstore'] = self.certstore
+                threads = []
+                thr = threading.Thread(target=svc_thread_func, args=(params, self.services))
+                threads.append(thr)
+                thr.start()
+            for index, thread in enumerate(threads):
+                thread.join()
         else:
             raise PaloAltoMissingParam(
                 "missing device-group parameter to get devicegroup services")
@@ -172,5 +186,19 @@ class PanoramaServices(Services):
         """
         resp = get_restapi(device=self.device, api_key=self.api_key,
                            device_group=self.location, name=self.name, verify=self.
-                           certstore, url_type='services', version=self.version)
+                           certstore, url_type=self.url_type, version=self.version)
         self.services[self.location] = resp.json()["result"]
+
+def svc_thread_func(params: dict, results: dict):
+    """Used for multithreading calls when multiple device groups are called
+
+    Args:
+        params (dict): _description_
+        results (dict): _description_
+    """
+    print(f"getting {params['device_group']}")
+    resp = get_restapi(
+                    device=params['device'], api_key=params['api_key'],
+                    verify=params['certstore'], url_type=params['url_type'], version=params['version'],
+                    device_group=params['device_group'])
+    results['device-group'][params['device_group']] = resp.json()["result"]

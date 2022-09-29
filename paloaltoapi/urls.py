@@ -523,5 +523,5 @@ def get_restapi(device, api_key, **kwargs) -> Response:
         params=values["params"],
         headers=values["headers"],
         verify=values['verify'])
-    print(response, values)
+    # print(response, values)
     return response
