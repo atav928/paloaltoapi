@@ -189,25 +189,6 @@ class Panorama(Firewall):
                                             device_group=device_group, verify=self.certstore)
         return resp
 
-    # def get_services(self, location: str, name: str = None, device_group: str = None):
-    #    """_summary_
-    #
-    #    Args:
-    #        location (str): _description_
-    #        name (str, optional): _description_. Defaults to None.
-    #        device_group (str, optional): _description_. Defaults to None.
-    #    """
-    #    if location.lower() == 'all':
-    #        device_group_list = self.get_device_group_list()
-    #        device_group_list.remove('shared')
-    #        self.Services = PanoramaServices(
-    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
-    #            name=name, device_group_list=device_group_list)
-    #    else:
-    #        self.Services = PanoramaServices(
-    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
-    #            name=name, device_group=device_group)
-
     @property
     def url_search(self):
         raise PaloAltoAPIError(f"{self.__class__} cannot search url")
