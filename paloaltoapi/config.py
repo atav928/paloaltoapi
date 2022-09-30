@@ -203,3 +203,10 @@ class Config:
                         '</admin></partial></config></revert>',
         }
     }
+    REST_API = {
+        #Objects
+        "applications": "{}/Objects/Applications",
+        "application_groups": "{}/Objects/ApplicationGroups",
+        "services": "{}/Objects/Services",
+        "service_groups": "{}/Objects/ServiceGroups"
+    }

@@ -50,12 +50,11 @@ This class allows us to look search and edit an address group and the location i
 ```python
 import os
 from paloaltoapi.device_groups.objects.address_groups import AddressGroups
- 
-CERT = os.getenv("CERT", None)
-if not CERT:
-    CERT = False
 
-addr_grp = AddressGroups(device='panorama.com', api_key="<api-token>", certstore=CERT)
+# if CERT is set as an env variable
+from paloaltoapi import config
+
+addr_grp = AddressGroups(device='panorama.com', api_key="<api-token>", certstore=config['CERT'])
 
 address_group_list = addr_grp.list_address_group(address_grp='grp-ext-crl-microsoft',location='Internet')
  
@@ -79,4 +78,27 @@ searches for the address groups and lists out all the values associated with eac
 }
 """
  
+```
+
+
+### Services
+
+Gathers Services currently implemented for Panorama only need to update release to include firewall direct accesss. 
+
+Valid entries ['all', 'predefined', 'shared', 'device-group']
+* if 'all' is used then you must provide a device_group_list
+* if 'device-group' is selected you must provide a device_group 
+
+```python
+from paloaltoapi.panorama import Panorama
+
+pano =  Panorama(device='panorama.com', certstore=False, key="key")
+pano.Services.get_services(location='shared')
+print(pano.Services.services)
+
+# Get Service Groups
+
+pano.ServiceGroups.get_service_groups(location='shared')
+print(pano.ServiceGroups.service_groups)
+
 ```
