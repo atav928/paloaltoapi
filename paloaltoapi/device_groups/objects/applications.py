@@ -183,7 +183,3 @@ class PanoramaApplications(Applications):
                            device_group=self.location, name=self.name, verify=self.
                            certstore, url_type=self.url_type, version=self.version)
         self.applications[self.location] = resp.json()["result"]
-
-    def __repr__(self):
-        attrs = str(list(self.__dict__))
-        return f"<paloaltoapi.device_groups.objects.PanoramaApplications: {str(self)}> {attrs}"

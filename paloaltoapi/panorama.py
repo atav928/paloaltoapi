@@ -1,9 +1,11 @@
+# pylint: disable=invalid-name,line-too-long
 """Panorama Module"""
 import sys
 from typing import Any, Dict
 from bs4 import BeautifulSoup as BS
 from paloaltoapi.commit import commit_panorama_device_group
 from paloaltoapi.device_groups.objects.applications import PanoramaApplications
+from paloaltoapi.device_groups.objects.service_groups import PanoramaServiceGroups
 from paloaltoapi.device_groups.objects.services import PanoramaServices
 from paloaltoapi.xmlparser import xml2dict
 from paloaltoapi.firewall import Firewall
@@ -13,20 +15,26 @@ from paloaltoapi.device_groups.device_group import DeviceGroup
 from paloaltoapi.device_groups.objects.urlcategory.url_categories import UrlCategories
 from paloaltoapi.highavail import HighAvail
 
+
 class Panorama(Firewall):
     """
     Panorama
     """
+
     def __init__(self, device, username=None, passwd=None, certstore=False, key=None):
         """
         params device:
         """
         super().__init__(device=device, username=username,
-                passwd=passwd, certstore=certstore, key=key)
+                         passwd=passwd, certstore=certstore, key=key)
         self.configs = {}
         self.high_avail_status()
-        self.Services = PanoramaServices(device=self.device, api_key=self.api_key)
-        self.Applications = PanoramaApplications(device=self.device,api_key=self.api_key)
+        self.Services = PanoramaServices(
+            device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
+        self.ServiceGroups = PanoramaServiceGroups(
+            device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
+        self.Applications = PanoramaApplications(
+            device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
 
     def __repr__(self):
         attrs = str([x for x in self.__dict__])
@@ -35,17 +43,17 @@ class Panorama(Firewall):
     def _get_device_groups_from_pa(self) -> dict:
         values = Url.xml_device_entries(self.device, self.api_key)
         req = ApiCalls.request(req_type=values['request_type'], url=values['url'],
-                            params=values.get('params', None),
-                            headers=values.get('headers', None),
-                            data=values.get('data', None))
+                               params=values.get('params', None),
+                               headers=values.get('headers', None),
+                               data=values.get('data', None))
         soup = BS(req.text, features='html.parser')
         return xml2dict(str(soup))
 
     def get_device_group_list(self):
         try:
             xmldict = self._get_device_groups_from_pa()
-            device_groups =  [ dg.get('name') for dg
-                in xmldict['result']['device-group']['entry'] ]
+            device_groups = [dg.get('name') for dg
+                             in xmldict['result']['device-group']['entry']]
             device_groups.append('shared')
         except (AttributeError, KeyError) as err:
             raise PaloAltoAPIError from err
@@ -61,8 +69,8 @@ class Panorama(Firewall):
             xmldict = self._get_device_groups_from_pa()
             device_groups = []
             for i in device_list:
-                if not i in [ dg.get('name') for dg in
-                    xmldict['result']['device-group']['entry'] ]:
+                if not i in [dg.get('name') for dg in
+                             xmldict['result']['device-group']['entry']]:
                     raise PaloAltoAPIError(f"{device_groups} not a valid device group")
                 else:
                     device_groups.append(i)
@@ -72,10 +80,10 @@ class Panorama(Firewall):
             self.DeviceGroups = DeviceGroup(
                 device_list=device_groups, device=self.device, key=self.api_key)
             device_dict = {dg: {"policy":
-                        {'security': {"pre-rules":
-                            {"entry": []}, "post-rules": {"entry": []} }}}
-                                for dg in device_groups}
-            self.configs = { **self.configs, **device_dict }
+                                {'security': {"pre-rules":
+                                              {"entry": []}, "post-rules": {"entry": []}}}}
+                           for dg in device_groups}
+            self.configs = {**self.configs, **device_dict}
         except (AttributeError, KeyError) as err:
             raise PaloAltoAPIError from err
 
@@ -92,7 +100,7 @@ class Panorama(Firewall):
         """
         self.__create_url_category_obj()
 
-    def get_url_categories(self, device_group: str = None, name:str = None) -> dict:
+    def get_url_categories(self, device_group: str = None, name: str = None) -> dict:
         """
         Runs function to retrieve either a full Device Group list of URLS or
          returns just a single name'ed url category if specified. If pulling
@@ -108,7 +116,7 @@ class Panorama(Firewall):
             self._get_url_all(device_group=device_group)
         else:
             self._get_url_by_name(device_group=device_group,
-                        name=name)
+                                  name=name)
 
     def _get_url_all(self, device_group: str) -> dict:
         """
@@ -117,13 +125,13 @@ class Panorama(Firewall):
         tmp = self.UrlCategories._get_url_cust_categories(
             device_group=device_group)
         if device_group not in self.configs.keys():
-            self.configs.update({device_group: {"objects": {"url-categories": {"entry": tmp }}}})
+            self.configs.update({device_group: {"objects": {"url-categories": {"entry": tmp}}}})
         else:
             # find a way to search through the existing entries and
             #  current returned entry to see if one exists
             #  add it only if it is new for now just overright the returns
-            #for entry in self.configs[device_group]['objects']['url-categories']['entry']
-            self.configs[device_group].update({'objects': {'url-categories': {'entry': tmp }}})
+            # for entry in self.configs[device_group]['objects']['url-categories']['entry']
+            self.configs[device_group].update({'objects': {'url-categories': {'entry': tmp}}})
             # self.configs[device_group]['objects']['url-categories']['entry'] = tmp
         return tmp
 
@@ -133,13 +141,11 @@ class Panorama(Firewall):
         """
         for device_group in url_cat.keys():
             if device_group not in self.configs.keys():
-                self.configs.update({device_group: {"objects":
-                        {"url-categories": {"entry": 
-                                self.UrlCategories.url_categories[device_group]}}}})
+                self.configs.update({device_group: {"objects": {
+                                    "url-categories": {"entry": self.UrlCategories.url_categories[device_group]}}}})
             else:
-                self.configs[device_group].update({'objects':
-                        {'url-categories': {'entry': 
-                                self.UrlCategories.url_categories[device_group]}}})
+                self.configs[device_group].update(
+                    {'objects': {'url-categories': {'entry': self.UrlCategories.url_categories[device_group]}}})
 
     def _get_url_by_name(self, device_group: str, name: str) -> dict:
         """
@@ -154,15 +160,15 @@ class Panorama(Firewall):
         """
         values = Url.xml_ha_get_status(self.device, self.api_key)
         req = ApiCalls.request_get(url=values['url'],
-                                params=values.get('params', None),
-                                headers=values.get('headers', None),
-                                verify=self.certstore)
+                                   params=values.get('params', None),
+                                   headers=values.get('headers', None),
+                                   verify=self.certstore)
         soup = BS(req.text, features='html.parser')
         try:
-            #print(soup)
+            # print(soup)
             xmldict = xml2dict(str(soup))
-            #print(xmldict)
-            #if self.model not in PANORAMA:
+            # print(xmldict)
+            # if self.model not in PANORAMA:
             #    raise PaloAltoAPIError(f'{self.device} is not a Panorama device use Firewall')
             self.high_avail = HighAvail(xmldict, self.device,
                                         self.api_key, is_panorama=True)
@@ -178,33 +184,14 @@ class Panorama(Firewall):
         if url_categories:
             self.__create_url_category_obj()
             for device_group in self.UrlCategories.url_categories.keys():
-                self.configs[device_group].update({'objects': {'url-categories':
-                            {'entry': self.UrlCategories.url_categories }}})
+                self.configs[device_group].update(
+                    {'objects': {'url-categories': {'entry': self.UrlCategories.url_categories}}})
 
-    def commit_all(self, device_group: str) -> Dict[str,Any]:
+    def commit_all(self, device_group: str) -> Dict[str, Any]:
         """Specific Device group commit."""
-        resp = commit_panorama_device_group(device=self.device,api_key=self.api_key,
-                    device_group=device_group,verify=self.certstore)
+        resp = commit_panorama_device_group(device=self.device, api_key=self.api_key,
+                                            device_group=device_group, verify=self.certstore)
         return resp
-
-    #def get_services(self, location: str, name: str = None, device_group: str = None):
-    #    """_summary_
-    #
-    #    Args:
-    #        location (str): _description_
-    #        name (str, optional): _description_. Defaults to None.
-    #        device_group (str, optional): _description_. Defaults to None.
-    #    """
-    #    if location.lower() == 'all':
-    #        device_group_list = self.get_device_group_list()
-    #        device_group_list.remove('shared')
-    #        self.Services = PanoramaServices(
-    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
-    #            name=name, device_group_list=device_group_list)
-    #    else:
-    #        self.Services = PanoramaServices(
-    #            location=location, api_key=self.api_key, device=self.device, version=self.version,
-    #            name=name, device_group=device_group)
 
     @property
     def url_search(self):
