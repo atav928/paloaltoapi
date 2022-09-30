@@ -4,6 +4,7 @@ from typing import Any, Dict
 from bs4 import BeautifulSoup as BS
 from paloaltoapi.commit import commit_panorama_device_group
 from paloaltoapi.device_groups.objects.applications import PanoramaApplications
+from paloaltoapi.device_groups.objects.service_groups import PanoramaServiceGroups
 from paloaltoapi.device_groups.objects.services import PanoramaServices
 from paloaltoapi.xmlparser import xml2dict
 from paloaltoapi.firewall import Firewall
@@ -29,6 +30,7 @@ class Panorama(Firewall):
         self.high_avail_status()
         self.Services = PanoramaServices(
             device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
+        self.ServiceGroups = PanoramaServiceGroups(device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
         self.Applications = PanoramaApplications(
             device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
 
