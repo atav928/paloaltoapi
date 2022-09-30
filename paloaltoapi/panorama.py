@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name,line-too-long
 """Panorama Module"""
 import sys
 from typing import Any, Dict
@@ -30,7 +31,8 @@ class Panorama(Firewall):
         self.high_avail_status()
         self.Services = PanoramaServices(
             device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
-        self.ServiceGroups = PanoramaServiceGroups(device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
+        self.ServiceGroups = PanoramaServiceGroups(
+            device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
         self.Applications = PanoramaApplications(
             device=self.device, api_key=self.api_key, version=self.version, certstore=self.certstore)
 
